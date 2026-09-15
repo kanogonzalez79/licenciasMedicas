@@ -1,0 +1,36 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Node / Vite (frontend)
+node_modules/
+src/LicenciasMedicas.Web.Client/dist/
+*.local
+
+# Cliente React embebido en Release (se regenera en el build, no se versiona)
+src/LicenciasMedicas.Web/wwwroot/*
+!src/LicenciasMedicas.Web/wwwroot/.gitkeep
+
+# Salida de publicación (contiene el .exe self-contained + datos reales de runtime)
+/publish/
+*.zip
+
+# Datos de runtime de la app (licencias.db, PDFs archivados, logs) — nunca versionar
+# datos médicos/personales. Cubre tanto la raíz del repo como bin/*/data si se corre
+# la app localmente desde ahí.
+/data/
+/logs/
+**/bin/**/data/
+**/bin/**/logs/
+*.db
+*.db-shm
+*.db-wal
+
+# Editores / OS
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

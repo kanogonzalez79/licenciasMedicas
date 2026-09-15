@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Document with folded top-right corner -->
+  <path d="M10,6 L44,6 L54,16 L54,58 L10,58 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Folded corner flap -->
+  <path d="M44,6 L54,6 L54,16 Z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Medical cross -->
+  <rect x="27" y="14" width="10" height="24" rx="1.5" fill="#dc2626"/>
+  <rect x="20" y="21" width="24" height="10" rx="1.5" fill="#dc2626"/>
+  <!-- Text lines -->
+  <rect x="16" y="41" width="32" height="3" rx="1.5" fill="#cbd5e1"/>
+  <rect x="16" y="47" width="32" height="3" rx="1.5" fill="#cbd5e1"/>
+  <rect x="16" y="53" width="24" height="3" rx="1.5" fill="#cbd5e1"/>
+</svg>
