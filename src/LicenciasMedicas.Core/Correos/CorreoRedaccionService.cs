@@ -45,12 +45,43 @@ public sealed class CorreoRedaccionService
         var sb = new StringBuilder();
         sb.AppendLine(saludo);
         sb.AppendLine();
-        sb.AppendLine(string.Join('\t', "RUT", "Nombre", "Fecha Inicio", "Fecha Término", "Cantidad de Días"));
-        foreach (var licencia in licencias)
+        sb.Append(FormatearTabla(licencias));
+
+        return sb.ToString();
+    }
+
+    private const string SeparadorColumnas = "  ";
+
+    private static string FormatearTabla(IReadOnlyList<Licencia> licencias)
+    {
+        string[] encabezados = ["RUT", "Nombre", "Fecha Inicio", "Fecha Término", "Cantidad de Días"];
+        var filas = licencias
+            .Select(licencia => new[]
+            {
+                $"{licencia.RutPacienteSinDv}-{licencia.DvPaciente}",
+                licencia.NombreCompletoPaciente,
+                licencia.FechaInicioReposo,
+                licencia.FechaTerminoReposo,
+                licencia.CantidadDias.ToString(),
+            })
+            .ToList();
+
+        var anchos = new int[encabezados.Length];
+        for (var i = 0; i < encabezados.Length; i++)
         {
-            var rut = $"{licencia.RutPacienteSinDv}-{licencia.DvPaciente}";
-            sb.AppendLine(string.Join('\t', rut, licencia.NombreCompletoPaciente, licencia.FechaInicioReposo, licencia.FechaTerminoReposo, licencia.CantidadDias));
+            anchos[i] = encabezados[i].Length;
+            foreach (var fila in filas)
+                anchos[i] = Math.Max(anchos[i], fila[i].Length);
         }
+
+        string FormatearFila(IReadOnlyList<string> valores) =>
+            string.Join(SeparadorColumnas, valores.Select((valor, i) => valor.PadRight(anchos[i])));
+
+        var sb = new StringBuilder();
+        sb.AppendLine(FormatearFila(encabezados));
+        sb.AppendLine(FormatearFila(anchos.Select(ancho => new string('-', ancho)).ToArray()));
+        foreach (var fila in filas)
+            sb.AppendLine(FormatearFila(fila));
 
         return sb.ToString();
     }

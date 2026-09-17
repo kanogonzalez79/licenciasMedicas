@@ -1,4 +1,4 @@
-import { Building2, FileInput, HardDrive, Mail, Moon, Search, Sun } from "lucide-react";
+import { Building2, FileInput, HardDrive, Mail, Moon, Search, Settings, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Link, useLocation } from "react-router";
 
@@ -21,6 +21,7 @@ const paginas = [
   { href: "/ingresar", etiqueta: "Ingresar licencias", icon: FileInput },
   { href: "/redactar-correo", etiqueta: "Redactar correo", icon: Mail },
   { href: "/respaldo", etiqueta: "Respaldo", icon: HardDrive },
+  { href: "/configuracion", etiqueta: "Configuración", icon: Settings },
 ];
 
 function ThemeToggle() {

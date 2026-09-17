@@ -1,3 +1,4 @@
+using Dapper;
 using LicenciasMedicas.Core.Data;
 using LicenciasMedicas.Core.Licencias;
 using LicenciasMedicas.Core.Parsing;
@@ -76,5 +77,35 @@ public sealed class LicenciasRepositoryTests : IDisposable
         var eliminada = _licenciasRepo.Eliminar(connection, 999);
 
         Assert.False(eliminada);
+    }
+
+    [Fact]
+    public void UnidadesConLicenciasGrabadasEnFecha_ConEnvioRegistrado_IncluyeUltimoEnvio()
+    {
+        GrabarLicenciaDePrueba("FOLIO-ENVIO");
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        using var connection = _connectionFactory.Crear();
+        connection.Execute(
+            "INSERT INTO CorreosEnviados (UnidadId, Fecha, FechaHoraEnvio) VALUES (@UnidadId, @Fecha, @FechaHoraEnvio);",
+            new { UnidadId = _unidadId, Fecha = hoy.ToString("yyyy-MM-dd"), FechaHoraEnvio = "2026-01-01T10:00:00.000Z" });
+
+        var resultado = _licenciasRepo.UnidadesConLicenciasGrabadasEnFecha(connection, hoy);
+
+        var unidad = Assert.Single(resultado);
+        Assert.Equal("2026-01-01T10:00:00.000Z", unidad.UltimoEnvio);
+    }
+
+    [Fact]
+    public void UnidadesConLicenciasGrabadasEnFecha_SinEnvioRegistrado_UltimoEnvioEsNull()
+    {
+        GrabarLicenciaDePrueba("FOLIO-SIN-ENVIO");
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.UnidadesConLicenciasGrabadasEnFecha(connection, hoy);
+
+        var unidad = Assert.Single(resultado);
+        Assert.Null(unidad.UltimoEnvio);
     }
 }

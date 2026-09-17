@@ -36,6 +36,8 @@ builder.Services.AddSingleton<StagingRepository>();
 builder.Services.AddSingleton<ProcesamientoService>();
 builder.Services.AddSingleton<IngresoManualService>();
 builder.Services.AddSingleton<CorreoRedaccionService>();
+builder.Services.AddSingleton<ConfiguracionSmtpService>();
+builder.Services.AddSingleton<CorreoEnvioService>();
 builder.Services.AddSingleton<RespaldoService>();
 
 var app = builder.Build();
@@ -65,6 +67,7 @@ app.MapUnidadesEndpoints();
 app.MapLicenciasEndpoints();
 app.MapProcesamientoEndpoints();
 app.MapCorreosEndpoints();
+app.MapConfiguracionEndpoints();
 app.MapRespaldoEndpoints();
 
 // SPA (React Router): cualquier ruta que no matchee un endpoint de arriba ni un archivo

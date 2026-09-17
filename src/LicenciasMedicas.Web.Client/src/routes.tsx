@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 
 import App from "@/App";
 import { BuscarPage } from "@/pages/BuscarPage";
+import { ConfiguracionPage } from "@/pages/ConfiguracionPage";
 import { IngresarPage } from "@/pages/IngresarPage";
 import { InicioPage } from "@/pages/InicioPage";
 import { RedactarCorreoPage } from "@/pages/RedactarCorreoPage";
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: "ingresar", Component: IngresarPage },
       { path: "redactar-correo", Component: RedactarCorreoPage },
       { path: "respaldo", Component: RespaldoPage },
+      { path: "configuracion", Component: ConfiguracionPage },
     ],
   },
 ]);

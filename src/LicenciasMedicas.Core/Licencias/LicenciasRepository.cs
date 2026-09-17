@@ -133,11 +133,12 @@ public sealed class LicenciasRepository
     public IReadOnlyList<UnidadConLicenciasEnFecha> UnidadesConLicenciasGrabadasEnFecha(SqliteConnection connection, DateOnly fecha)
     {
         const string sql = """
-            SELECT u.UnidadId, u.Descripcion, u.CorreoElectronico, COUNT(l.LicenciaId) AS CantidadLicencias
+            SELECT u.UnidadId, u.Descripcion, u.CorreoElectronico, COUNT(l.LicenciaId) AS CantidadLicencias, ce.FechaHoraEnvio AS UltimoEnvio
             FROM Unidades u
             JOIN Licencias l ON l.UnidadId = u.UnidadId
+            LEFT JOIN CorreosEnviados ce ON ce.UnidadId = u.UnidadId AND ce.Fecha = @fecha
             WHERE DATE(l.FechaIngresoSistema, 'localtime') = @fecha
-            GROUP BY u.UnidadId, u.Descripcion, u.CorreoElectronico
+            GROUP BY u.UnidadId, u.Descripcion, u.CorreoElectronico, ce.FechaHoraEnvio
             ORDER BY u.Descripcion COLLATE NOCASE;
             """;
         return connection.Query<UnidadConLicenciasEnFecha>(sql, new { fecha = fecha.ToString("yyyy-MM-dd") }).ToList();

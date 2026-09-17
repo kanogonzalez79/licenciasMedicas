@@ -1,7 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { correosApi } from "@/lib/api";
 
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+
 function fechaDeHoy(): string {
   const hoy = new Date();
   const mm = String(hoy.getMonth() + 1).padStart(2, "0");
@@ -17,10 +30,16 @@ function fechaDeHoy(): string {
   return `${hoy.getFullYear()}-${mm}-${dd}`;
 }
 
+function esCorreoValido(correo: string | null): correo is string {
+  return correo !== null && EMAIL_PATTERN.test(correo.trim());
+}
+
 export function RedactarCorreoPage() {
+  const queryClient = useQueryClient();
   const [fecha, setFecha] = useState(fechaDeHoy());
   const [fechaBuscada, setFechaBuscada] = useState<string | null>(null);
   const [seleccion, setSeleccion] = useState<{ unidadId: number; fecha: string } | null>(null);
+  const [texto, setTexto] = useState("");
 
   const unidadesQuery = useQuery({
     queryKey: ["correos", "unidades", fechaBuscada],
@@ -34,6 +53,19 @@ export function RedactarCorreoPage() {
     enabled: seleccion !== null,
   });
 
+  useEffect(() => {
+    setTexto(redactarQuery.data?.texto ?? "");
+  }, [redactarQuery.data]);
+
+  const enviar = useMutation({
+    mutationFn: () => correosApi.enviar(seleccion!.unidadId, seleccion!.fecha, texto),
+    onSuccess: () => {
+      toast.success("Correo enviado.");
+      queryClient.invalidateQueries({ queryKey: ["correos", "unidades", fechaBuscada] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   function handleBuscar() {
     if (!fecha) {
       toast.error("Seleccione una fecha.");
@@ -44,7 +76,6 @@ export function RedactarCorreoPage() {
   }
 
   async function handleCopiar() {
-    const texto = redactarQuery.data?.texto ?? "";
     try {
       await navigator.clipboard.writeText(texto);
     } catch {
@@ -57,6 +88,8 @@ export function RedactarCorreoPage() {
 
   const unidades = unidadesQuery.data ?? [];
   const mostrarSinResultados = unidadesQuery.isSuccess && unidades.length === 0;
+  const unidadSeleccionada = unidades.find((u) => u.unidadId === seleccion?.unidadId) ?? null;
+  const puedeEnviar = esCorreoValido(unidadSeleccionada?.correoElectronico ?? null);
 
   return (
     <div className="space-y-4">
@@ -109,14 +142,53 @@ export function RedactarCorreoPage() {
         </Card>
       )}
 
-      {redactarQuery.data && (
+      {redactarQuery.data && unidadSeleccionada && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Texto para el correo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Textarea readOnly value={redactarQuery.data.texto} className="min-h-56" />
-            <Button onClick={handleCopiar}>Copiar</Button>
+            <Textarea value={texto} onChange={(e) => setTexto(e.target.value)} className="min-h-56 font-mono" />
+
+            {!puedeEnviar && (
+              <p className="text-sm text-destructive">
+                Esta unidad no tiene un correo electrónico con formato válido. Complételo en la pantalla Unidades
+                antes de enviar.
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handleCopiar}>
+                Copiar
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger render={<Button disabled={!puedeEnviar || enviar.isPending} />}>
+                  {enviar.isPending ? "Enviando..." : "Enviar correo"}
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Enviar correo</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se enviará el correo a <strong>{unidadSeleccionada.correoElectronico}</strong> con las{" "}
+                      {unidadSeleccionada.cantidadLicencias} licencias de {unidadSeleccionada.descripcion} de esta
+                      fecha.
+                      {unidadSeleccionada.ultimoEnvio && (
+                        <>
+                          {" "}
+                          Ya se había enviado este correo el {new Date(unidadSeleccionada.ultimoEnvio).toLocaleString("es-CL")}. ¿Reenviar
+                          de todas formas?
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => enviar.mutate()}>Enviar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardContent>
         </Card>
       )}

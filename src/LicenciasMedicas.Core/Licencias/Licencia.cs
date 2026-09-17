@@ -55,4 +55,7 @@ public sealed class UnidadConLicenciasEnFecha
     public string Descripcion { get; set; } = string.Empty;
     public string? CorreoElectronico { get; set; }
     public int CantidadLicencias { get; set; }
+
+    /// <summary>Fecha/hora ISO del último envío exitoso del correo para esta unidad y fecha, o null si nunca se envió.</summary>
+    public string? UltimoEnvio { get; set; }
 }

@@ -215,12 +215,47 @@ export type UnidadConLicenciasEnFecha = {
   descripcion: string;
   correoElectronico: string | null;
   cantidadLicencias: number;
+  ultimoEnvio: string | null;
 };
 
 export const correosApi = {
   unidadesEnFecha: (fecha: string) => apiFetch<UnidadConLicenciasEnFecha[]>(`/api/correos/unidades?fecha=${encodeURIComponent(fecha)}`),
   redactar: (unidadId: number, fecha: string) =>
     apiFetch<{ texto: string }>(`/api/correos/redactar?unidadId=${unidadId}&fecha=${encodeURIComponent(fecha)}`),
+  enviar: (unidadId: number, fecha: string, texto: string) =>
+    apiFetch<{ estado: string }>("/api/correos/enviar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unidadId, fecha, texto }),
+    }),
+};
+
+// -- Configuración SMTP ----------------------------------------------------------
+
+export type ConfiguracionSmtp = {
+  host: string;
+  puerto: number;
+  usuario: string;
+  remitente: string;
+  usaSsl: boolean;
+};
+
+export type ResultadoPruebaSmtp = { exito: boolean; error: string | null };
+
+export const configuracionApi = {
+  obtenerSmtp: () => apiFetch<ConfiguracionSmtp | null>("/api/configuracion/smtp"),
+  guardarSmtp: (datos: ConfiguracionSmtp & { contrasena: string }) =>
+    apiFetch<ConfiguracionSmtp>("/api/configuracion/smtp", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos),
+    }),
+  probarSmtp: (datos: { host: string; puerto: number; usuario: string; contrasena: string; usaSsl: boolean }) =>
+    apiFetch<ResultadoPruebaSmtp>("/api/configuracion/smtp/probar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos),
+    }),
 };
 
 // -- Respaldo ------------------------------------------------------------------
