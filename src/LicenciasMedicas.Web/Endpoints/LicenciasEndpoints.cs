@@ -6,6 +6,8 @@ using LicenciasMedicas.Core.Paths;
 
 namespace LicenciasMedicas.Web.Endpoints;
 
+public sealed record CambiarCorreoEnviadoRequest(bool CorreoEnviado);
+
 public static class LicenciasEndpoints
 {
     private const long TamanoMaximoAdjuntoBytes = 20 * 1024 * 1024;
@@ -167,6 +169,7 @@ public static class LicenciasEndpoints
                 EspecialidadProfesional = Obtener("especialidadProfesional"),
                 UnidadId = unidadId.Value,
                 Observaciones = Obtener("observaciones"),
+                CorreoEnviado = bool.TryParse(Obtener("correoEnviado"), out var correoEnviado) && correoEnviado,
             };
 
             await using var memoria = new MemoryStream();
@@ -189,6 +192,12 @@ public static class LicenciasEndpoints
 
             var rutaAbsoluta = Path.Combine(paths.ArchivoDir, licencia.RutaPdfArchivado);
             return File.Exists(rutaAbsoluta) ? Results.File(rutaAbsoluta, ContentTypeSegunExtension(rutaAbsoluta)) : Results.NotFound();
+        });
+
+        app.MapPatch("/api/licencias/{id:int}/correo-enviado", (int id, CambiarCorreoEnviadoRequest request, SqliteConnectionFactory factory, LicenciasRepository repo) =>
+        {
+            using var connection = factory.Crear();
+            return repo.ActualizarCorreoEnviado(connection, id, request.CorreoEnviado) ? Results.NoContent() : Results.NotFound();
         });
 
         app.MapDelete("/api/licencias/{id:int}", (int id, AppPaths paths, SqliteConnectionFactory factory, LicenciasRepository repo) =>

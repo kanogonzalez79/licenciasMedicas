@@ -36,6 +36,7 @@ public sealed class DatosLicenciaManual
     public string? EspecialidadProfesional { get; init; }
     public required int UnidadId { get; init; }
     public string? Observaciones { get; init; }
+    public bool CorreoEnviado { get; init; }
 }
 
 public static class MotivosRechazoIngresoManual
@@ -177,6 +178,7 @@ public sealed class IngresoManualService
                 NombreArchivoOriginal = nombreArchivoOriginal,
                 HashArchivoSha256 = hash,
                 Observaciones = datos.Observaciones,
+                CorreoEnviado = datos.CorreoEnviado,
             };
 
             var licenciaId = _licenciasRepo.Insertar(connection, licencia);

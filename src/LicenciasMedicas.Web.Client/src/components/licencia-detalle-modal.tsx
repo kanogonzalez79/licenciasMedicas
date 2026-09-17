@@ -1,11 +1,17 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import type { Licencia } from "@/lib/api";
+import { type Licencia, licenciasApi } from "@/lib/api";
 
 const SIN_INFORMAR = "No informado";
 
@@ -68,6 +74,22 @@ export function LicenciaDetalleModal({
   licencia: Licencia | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const queryClient = useQueryClient();
+  const [correoEnviado, setCorreoEnviado] = useState(false);
+
+  useEffect(() => {
+    setCorreoEnviado(licencia?.correoEnviado ?? false);
+  }, [licencia]);
+
+  const cambiarCorreoEnviado = useMutation({
+    mutationFn: (valor: boolean) => licenciasApi.cambiarCorreoEnviado(licencia!.licenciaId, valor),
+    onSuccess: (_, valor) => {
+      setCorreoEnviado(valor);
+      queryClient.invalidateQueries({ queryKey: ["licencias", "buscar"] });
+    },
+    onError: () => toast.error("No se pudo actualizar el estado de correo enviado."),
+  });
+
   return (
     <Dialog open={licencia !== null} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -86,6 +108,15 @@ export function LicenciaDetalleModal({
                 formatear={(valor) => formatearConDescripcion(valor, DESCRIPCIONES_TIPO_FORMULARIO)}
               />
               <Campo etiqueta="Fecha de ingreso al sistema" valor={licencia.fechaIngresoSistema} />
+              <div className="col-span-2 flex items-center gap-2">
+                <Checkbox
+                  id="dCorreoEnviado"
+                  checked={correoEnviado}
+                  disabled={cambiarCorreoEnviado.isPending}
+                  onCheckedChange={(valor) => cambiarCorreoEnviado.mutate(valor)}
+                />
+                <Label htmlFor="dCorreoEnviado">Correo enviado</Label>
+              </div>
             </Seccion>
 
             <Separator />

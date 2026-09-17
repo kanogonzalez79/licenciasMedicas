@@ -148,13 +148,14 @@ export function BuscarPage() {
                 <TableHead>Unidad</TableHead>
                 <TableHead>Fecha ingreso</TableHead>
                 <TableHead>Origen</TableHead>
+                <TableHead>Correo</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="italic text-muted-foreground">
+                  <TableCell colSpan={12} className="italic text-muted-foreground">
                     Sin resultados.
                   </TableCell>
                 </TableRow>
@@ -176,6 +177,9 @@ export function BuscarPage() {
                     <Badge variant={licencia.esIngresoManual ? "secondary" : "outline"}>
                       {licencia.esIngresoManual ? "Manual" : "Automático"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {licencia.correoEnviado && <Badge variant="success">Correo enviado</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

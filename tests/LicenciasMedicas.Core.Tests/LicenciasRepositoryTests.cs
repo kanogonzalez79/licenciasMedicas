@@ -38,7 +38,7 @@ public sealed class LicenciasRepositoryTests : IDisposable
         return GrabarLicenciaDePrueba(folio, "2026-01-01", "2026-01-05");
     }
 
-    private int GrabarLicenciaDePrueba(string folio, string fechaInicioReposo, string fechaTerminoReposo)
+    private int GrabarLicenciaDePrueba(string folio, string fechaInicioReposo, string fechaTerminoReposo, bool correoEnviado = false)
     {
         using var connection = _connectionFactory.Crear();
         var licencia = new Licencia
@@ -55,6 +55,7 @@ public sealed class LicenciasRepositoryTests : IDisposable
             RutaPdfArchivado = "prueba.pdf",
             NombreArchivoOriginal = "prueba.pdf",
             HashArchivoSha256 = "hash-" + folio,
+            CorreoEnviado = correoEnviado,
         };
         return _licenciasRepo.Insertar(connection, licencia);
     }
@@ -176,5 +177,78 @@ public sealed class LicenciasRepositoryTests : IDisposable
             connection, new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 30), ModoFechaInforme.Interseccion);
 
         Assert.Empty(resultado);
+    }
+
+    [Fact]
+    public void Insertar_ConCorreoEnviadoMarcadoYSinMarcar_GrabaCadaValorCorrectamente()
+    {
+        var idMarcada = GrabarLicenciaDePrueba("CORREO-ENVIADO", "2026-01-01", "2026-01-05", correoEnviado: true);
+        var idPendiente = GrabarLicenciaDePrueba("CORREO-PENDIENTE", "2026-01-01", "2026-01-05", correoEnviado: false);
+
+        using var connection = _connectionFactory.Crear();
+        Assert.True(_licenciasRepo.ObtenerPorId(connection, idMarcada)!.CorreoEnviado);
+        Assert.False(_licenciasRepo.ObtenerPorId(connection, idPendiente)!.CorreoEnviado);
+    }
+
+    [Fact]
+    public void UnidadesConLicenciasGrabadasEnFecha_ConLicenciaMarcadaComoCorreoEnviado_LaExcluyeDelConteo()
+    {
+        GrabarLicenciaDePrueba("MARCADA", "2026-01-01", "2026-01-05", correoEnviado: true);
+        GrabarLicenciaDePrueba("PENDIENTE", "2026-01-01", "2026-01-05", correoEnviado: false);
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.UnidadesConLicenciasGrabadasEnFecha(connection, hoy);
+
+        var unidad = Assert.Single(resultado);
+        Assert.Equal(1, unidad.CantidadLicencias);
+    }
+
+    [Fact]
+    public void UnidadesConLicenciasGrabadasEnFecha_ConTodasLasLicenciasMarcadas_NoIncluyeLaUnidad()
+    {
+        GrabarLicenciaDePrueba("MARCADA-1", "2026-01-01", "2026-01-05", correoEnviado: true);
+        GrabarLicenciaDePrueba("MARCADA-2", "2026-01-01", "2026-01-05", correoEnviado: true);
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.UnidadesConLicenciasGrabadasEnFecha(connection, hoy);
+
+        Assert.Empty(resultado);
+    }
+
+    [Fact]
+    public void LicenciasDeUnidadGrabadasEnFecha_ConLicenciaMarcadaComoCorreoEnviado_LaExcluye()
+    {
+        GrabarLicenciaDePrueba("MARCADA", "2026-01-01", "2026-01-05", correoEnviado: true);
+        GrabarLicenciaDePrueba("PENDIENTE", "2026-01-01", "2026-01-05", correoEnviado: false);
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.LicenciasDeUnidadGrabadasEnFecha(connection, _unidadId, hoy);
+
+        var licencia = Assert.Single(resultado);
+        Assert.Equal("PENDIENTE", licencia.Folio);
+    }
+
+    [Fact]
+    public void ActualizarCorreoEnviado_LicenciaExistente_CambiaElValorEnAmbosSentidos()
+    {
+        var licenciaId = GrabarLicenciaDePrueba("PARA-ACTUALIZAR");
+
+        using var connection = _connectionFactory.Crear();
+
+        Assert.True(_licenciasRepo.ActualizarCorreoEnviado(connection, licenciaId, true));
+        Assert.True(_licenciasRepo.ObtenerPorId(connection, licenciaId)!.CorreoEnviado);
+
+        Assert.True(_licenciasRepo.ActualizarCorreoEnviado(connection, licenciaId, false));
+        Assert.False(_licenciasRepo.ObtenerPorId(connection, licenciaId)!.CorreoEnviado);
+    }
+
+    [Fact]
+    public void ActualizarCorreoEnviado_LicenciaInexistente_DevuelveFalse()
+    {
+        using var connection = _connectionFactory.Crear();
+        Assert.False(_licenciasRepo.ActualizarCorreoEnviado(connection, 999, true));
     }
 }

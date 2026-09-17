@@ -70,6 +70,7 @@ export type Licencia = {
   observaciones: string | null;
   unidadDescripcion: string | null;
   esIngresoManual: boolean;
+  correoEnviado: boolean;
 };
 
 export type FiltroLicencias = {
@@ -104,6 +105,7 @@ export type NuevaLicenciaManual = {
   especialidadProfesional?: string;
   unidadId: number;
   observaciones?: string;
+  correoEnviado?: boolean;
   archivo: File;
 };
 
@@ -139,9 +141,16 @@ export const licenciasApi = {
     if (datos.especialidadProfesional) formData.set("especialidadProfesional", datos.especialidadProfesional);
     formData.set("unidadId", String(datos.unidadId));
     if (datos.observaciones) formData.set("observaciones", datos.observaciones);
+    if (datos.correoEnviado) formData.set("correoEnviado", "true");
     formData.set("archivo", datos.archivo);
     return apiFetch<Licencia>("/api/licencias/manual", { method: "POST", body: formData });
   },
+  cambiarCorreoEnviado: (id: number, correoEnviado: boolean) =>
+    apiFetch<void>(`/api/licencias/${id}/correo-enviado`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correoEnviado }),
+    }),
 };
 
 // -- Procesamiento -----------------------------------------------------------
@@ -190,6 +199,7 @@ export type FilaNoGrabada = {
 export type AsignacionUnidad = {
   revisionId: number;
   unidadId: number | null;
+  correoEnviado: boolean;
 };
 
 export type ResultadoProcesar = {

@@ -35,7 +35,7 @@ public sealed class CorreoRedaccionServiceTests : IDisposable
         try { Directory.Delete(_tempDir, recursive: true); } catch { /* best effort en limpieza de test */ }
     }
 
-    private void GrabarLicenciaDePrueba(string folio, string nombre, int cantidadDias)
+    private void GrabarLicenciaDePrueba(string folio, string nombre, int cantidadDias, bool correoEnviado = false)
     {
         using var connection = _connectionFactory.Crear();
         _licenciasRepo.Insertar(connection, new Licencia
@@ -52,6 +52,7 @@ public sealed class CorreoRedaccionServiceTests : IDisposable
             RutaPdfArchivado = "prueba.pdf",
             NombreArchivoOriginal = "prueba.pdf",
             HashArchivoSha256 = "hash-" + folio,
+            CorreoEnviado = correoEnviado,
         });
     }
 
@@ -123,6 +124,32 @@ public sealed class CorreoRedaccionServiceTests : IDisposable
         var fechaSinLicencias = DateOnly.FromDateTime(DateTime.Now).AddDays(-30);
 
         var texto = _service.Redactar(_unidadId, fechaSinLicencias);
+
+        Assert.Null(texto);
+    }
+
+    [Fact]
+    public void Redactar_ConLicenciaMarcadaComoCorreoEnviado_LaExcluyeDelTexto()
+    {
+        GrabarLicenciaDePrueba("FOLIO-PENDIENTE", "Juan Pérez", 5, correoEnviado: false);
+        GrabarLicenciaDePrueba("FOLIO-ENVIADO", "María José González", 3, correoEnviado: true);
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        var texto = _service.Redactar(_unidadId, hoy);
+
+        Assert.NotNull(texto);
+        Assert.Contains("Juan Pérez", texto);
+        Assert.DoesNotContain("María José González", texto);
+    }
+
+    [Fact]
+    public void Redactar_ConTodasLasLicenciasMarcadasComoCorreoEnviado_DevuelveNull()
+    {
+        GrabarLicenciaDePrueba("FOLIO-1", "Juan Pérez", 5, correoEnviado: true);
+        GrabarLicenciaDePrueba("FOLIO-2", "Ana Ruiz", 3, correoEnviado: true);
+        var hoy = DateOnly.FromDateTime(DateTime.Now);
+
+        var texto = _service.Redactar(_unidadId, hoy);
 
         Assert.Null(texto);
     }

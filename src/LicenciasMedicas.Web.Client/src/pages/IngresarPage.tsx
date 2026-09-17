@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IngresoManualModal } from "@/components/ingreso-manual-modal";
@@ -38,11 +39,15 @@ function FilaPendiente({
   unidades,
   unidadSeleccionada,
   onCambiarUnidad,
+  correoEnviado,
+  onCambiarCorreoEnviado,
 }: {
   revision: LicenciaRevision;
   unidades: Unidad[];
   unidadSeleccionada: string;
   onCambiarUnidad: (unidadId: string) => void;
+  correoEnviado: boolean;
+  onCambiarCorreoEnviado: (correoEnviado: boolean) => void;
 }) {
   return (
     <TableRow>
@@ -78,6 +83,9 @@ function FilaPendiente({
           </SelectContent>
         </Select>
       </TableCell>
+      <TableCell>
+        <Checkbox checked={correoEnviado} onCheckedChange={onCambiarCorreoEnviado} />
+      </TableCell>
     </TableRow>
   );
 }
@@ -89,6 +97,7 @@ export function IngresarPage() {
 
   const [fallidas, setFallidas] = useState<FilaFallida[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<number, string>>({});
+  const [correoEnviado, setCorreoEnviado] = useState<Record<number, boolean>>({});
 
   const pendientes = pendientesQuery.data ?? [];
   const unidades = unidadesQuery.data ?? [];
@@ -101,7 +110,18 @@ export function IngresarPage() {
       }
       return siguiente;
     });
+    setCorreoEnviado((actual) => {
+      const siguiente: Record<number, boolean> = {};
+      for (const p of pendientes) {
+        siguiente[p.revisionId] = actual[p.revisionId] ?? false;
+      }
+      return siguiente;
+    });
   }, [pendientes]);
+
+  function marcarLoteComoCorreoEnviado() {
+    setCorreoEnviado(Object.fromEntries(pendientes.map((p) => [p.revisionId, true])));
+  }
 
   const procesar = useMutation({
     mutationFn: procesamientoApi.procesar,
@@ -117,7 +137,11 @@ export function IngresarPage() {
       procesamientoApi.grabar(
         pendientes.map((p) => {
           const valor = asignaciones[p.revisionId];
-          return { revisionId: p.revisionId, unidadId: valor && valor !== SIN_ASIGNAR ? Number(valor) : null };
+          return {
+            revisionId: p.revisionId,
+            unidadId: valor && valor !== SIN_ASIGNAR ? Number(valor) : null,
+            correoEnviado: correoEnviado[p.revisionId] ?? false,
+          };
         }),
       ),
     onSuccess: async (resultado) => {
@@ -145,6 +169,11 @@ export function IngresarPage() {
               Grabar
             </Button>
           )}
+          {pendientes.length > 0 && (
+            <Button onClick={marcarLoteComoCorreoEnviado} variant="outline">
+              Marcar lote como correo enviado
+            </Button>
+          )}
           <IngresoManualModal unidades={unidades} />
         </CardContent>
       </Card>
@@ -167,6 +196,7 @@ export function IngresarPage() {
                   <TableHead>Días</TableHead>
                   <TableHead>¿Se leyó bien?</TableHead>
                   <TableHead>Unidad</TableHead>
+                  <TableHead>Correo enviado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -177,6 +207,8 @@ export function IngresarPage() {
                     unidades={unidades}
                     unidadSeleccionada={asignaciones[p.revisionId] ?? SIN_ASIGNAR}
                     onCambiarUnidad={(valor) => setAsignaciones((actual) => ({ ...actual, [p.revisionId]: valor }))}
+                    correoEnviado={correoEnviado[p.revisionId] ?? false}
+                    onCambiarCorreoEnviado={(valor) => setCorreoEnviado((actual) => ({ ...actual, [p.revisionId]: valor }))}
                   />
                 ))}
               </TableBody>

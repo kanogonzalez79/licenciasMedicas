@@ -31,6 +31,13 @@ public sealed class Licencia
     public string FechaIngresoSistema { get; set; } = string.Empty;
     public string? Observaciones { get; set; }
 
+    /// <summary>
+    /// Indica si el correo de aviso de esta licencia individual ya fue enviado (por el sistema o por fuera
+    /// de él, antes de ingresarla). No debe confundirse con la tabla <c>CorreosEnviados</c>, que registra
+    /// los envíos SMTP reales a nivel de unidad y fecha; este flag es independiente de esa tabla.
+    /// </summary>
+    public bool CorreoEnviado { get; set; }
+
     // Solo presente en resultados de búsqueda (JOIN con Unidades).
     public string? UnidadDescripcion { get; set; }
 

@@ -214,6 +214,7 @@ public sealed class ProcesamientoService
                     NombreArchivoOriginal = revision.NombreArchivoOriginal,
                     HashArchivoSha256 = revision.HashArchivoSha256,
                     Observaciones = revision.Observaciones,
+                    CorreoEnviado = asignacion.CorreoEnviado,
                 };
 
                 using var transaction = connection.BeginTransaction();

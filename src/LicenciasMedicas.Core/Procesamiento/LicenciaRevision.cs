@@ -37,7 +37,7 @@ public sealed record FilaFallida(string NombreArchivoOriginal, string Motivo);
 
 public sealed record FilaNoGrabada(int RevisionId, string Motivo);
 
-public sealed record AsignacionUnidad(int RevisionId, int? UnidadId);
+public sealed record AsignacionUnidad(int RevisionId, int? UnidadId, bool CorreoEnviado = false);
 
 public sealed class ResultadoProcesar
 {

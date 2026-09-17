@@ -279,6 +279,30 @@ public sealed class IngresoManualServiceTests : IDisposable
     }
 
     [Fact]
+    public void Ingresar_ConCorreoEnviadoMarcado_GrabaLaLicenciaConElFlagMarcado()
+    {
+        var datos = new DatosLicenciaManual
+        {
+            Folio = "FOLIO-CORREO-ENVIADO",
+            RutPaciente = "17000494-9",
+            NombreCompletoPaciente = "Paciente de Prueba",
+            CodigoTipoLicencia = 1,
+            FechaInicioReposo = new DateOnly(2026, 1, 1),
+            FechaTerminoReposo = new DateOnly(2026, 1, 5),
+            CantidadDias = 5,
+            UnidadId = _unidadId,
+            CorreoEnviado = true,
+        };
+
+        var resultado = _servicio.Ingresar(datos, ContenidoDePrueba(), ".pdf", "licencia.pdf");
+
+        Assert.True(resultado.Exito);
+        using var connection = _connectionFactory.Crear();
+        var licencia = _licenciasRepo.ObtenerPorId(connection, resultado.LicenciaId!.Value);
+        Assert.True(licencia!.CorreoEnviado);
+    }
+
+    [Fact]
     public void Ingresar_FolioPendienteEnStaging_RechazaPorDuplicadoFolio()
     {
         using (var connection = _connectionFactory.Crear())

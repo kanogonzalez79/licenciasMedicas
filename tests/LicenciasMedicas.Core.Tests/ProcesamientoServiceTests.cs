@@ -105,6 +105,25 @@ public sealed class ProcesamientoServiceTests : IDisposable
     }
 
     [Fact]
+    public void Grabar_ConAlgunasFilasMarcadasComoCorreoEnviado_GrabaCadaValorCorrectamente()
+    {
+        CopiarFixturesAIncoming("tipo1.pdf", "tipo2.pdf");
+        var pendientes = _servicio.Procesar().Pendientes;
+
+        var asignaciones = pendientes
+            .Select((p, i) => new AsignacionUnidad(p.RevisionId, _unidadId, CorreoEnviado: i == 0))
+            .ToList();
+        var resultado = _servicio.Grabar(asignaciones);
+
+        Assert.Equal(2, resultado.Grabadas.Count);
+
+        using var connection = _connectionFactory.Crear();
+        var busqueda = _licenciasRepo.Buscar(connection, new BusquedaLicenciasFiltro());
+        Assert.Equal(1, busqueda.Items.Count(l => l.CorreoEnviado));
+        Assert.Equal(1, busqueda.Items.Count(l => !l.CorreoEnviado));
+    }
+
+    [Fact]
     public void Grabar_SinUnidadAsignada_QuedaPendienteConMotivoFaltaUnidad()
     {
         CopiarFixturesAIncoming("tipo1.pdf");

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,11 +61,13 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
   const [campos, setCampos] = useState<Campos>(camposIniciales);
   const [unidadId, setUnidadId] = useState(SIN_ASIGNAR);
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [correoEnviado, setCorreoEnviado] = useState(false);
 
   function limpiar() {
     setCampos(camposIniciales);
     setUnidadId(SIN_ASIGNAR);
     setArchivo(null);
+    setCorreoEnviado(false);
   }
 
   function actualizarCampo<K extends keyof Campos>(campo: K, valor: string) {
@@ -117,6 +120,7 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
         especialidadProfesional: campos.especialidadProfesional.trim() || undefined,
         unidadId: Number(unidadId),
         observaciones: campos.observaciones.trim() || undefined,
+        correoEnviado,
         archivo: archivo!,
       }),
     onSuccess: () => {
@@ -311,6 +315,11 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
               value={campos.observaciones}
               onChange={(e) => actualizarCampo("observaciones", e.target.value)}
             />
+          </div>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <Checkbox id="mCorreoEnviado" checked={correoEnviado} onCheckedChange={setCorreoEnviado} />
+            <Label htmlFor="mCorreoEnviado">Correo ya enviado (licencia atrasada notificada antes de ingresarla)</Label>
           </div>
         </div>
 

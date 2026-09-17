@@ -33,14 +33,14 @@ public sealed class LicenciasRepository
                 EdadPaciente, SexoPaciente, CodigoTipoLicencia, DescripcionTipoLicencia,
                 FechaEmisionOtorgamiento, FechaInicioReposo, FechaTerminoReposo, CantidadDias,
                 RutProfesionalSinDv, DvProfesional, NombreCompletoProfesional, CorreoProfesional, EspecialidadProfesional,
-                UnidadId, RutaPdfArchivado, NombreArchivoOriginal, HashArchivoSha256, Observaciones
+                UnidadId, RutaPdfArchivado, NombreArchivoOriginal, HashArchivoSha256, Observaciones, CorreoEnviado
             ) VALUES (
                 @Folio, @TipoFormulario, @RutPacienteSinDv, @DvPaciente,
                 @ApellidoPaternoPaciente, @ApellidoMaternoPaciente, @NombresPaciente, @NombreCompletoPaciente,
                 @EdadPaciente, @SexoPaciente, @CodigoTipoLicencia, @DescripcionTipoLicencia,
                 @FechaEmisionOtorgamiento, @FechaInicioReposo, @FechaTerminoReposo, @CantidadDias,
                 @RutProfesionalSinDv, @DvProfesional, @NombreCompletoProfesional, @CorreoProfesional, @EspecialidadProfesional,
-                @UnidadId, @RutaPdfArchivado, @NombreArchivoOriginal, @HashArchivoSha256, @Observaciones
+                @UnidadId, @RutaPdfArchivado, @NombreArchivoOriginal, @HashArchivoSha256, @Observaciones, @CorreoEnviado
             );
             SELECT last_insert_rowid();
             """;
@@ -70,6 +70,12 @@ public sealed class LicenciasRepository
     {
         const string sql = "DELETE FROM Licencias WHERE LicenciaId = @licenciaId;";
         return connection.Execute(sql, new { licenciaId }) > 0;
+    }
+
+    public bool ActualizarCorreoEnviado(SqliteConnection connection, int licenciaId, bool correoEnviado)
+    {
+        const string sql = "UPDATE Licencias SET CorreoEnviado = @correoEnviado WHERE LicenciaId = @licenciaId;";
+        return connection.Execute(sql, new { licenciaId, correoEnviado }) > 0;
     }
 
     public (IReadOnlyList<Licencia> Items, int Total) Buscar(SqliteConnection connection, BusquedaLicenciasFiltro filtro)
@@ -164,7 +170,7 @@ public sealed class LicenciasRepository
             FROM Unidades u
             JOIN Licencias l ON l.UnidadId = u.UnidadId
             LEFT JOIN CorreosEnviados ce ON ce.UnidadId = u.UnidadId AND ce.Fecha = @fecha
-            WHERE DATE(l.FechaIngresoSistema, 'localtime') = @fecha
+            WHERE DATE(l.FechaIngresoSistema, 'localtime') = @fecha AND l.CorreoEnviado = 0
             GROUP BY u.UnidadId, u.Descripcion, u.CorreoElectronico, ce.FechaHoraEnvio
             ORDER BY u.Descripcion COLLATE NOCASE;
             """;
@@ -177,7 +183,7 @@ public sealed class LicenciasRepository
             SELECT l.*, u.Descripcion AS UnidadDescripcion
             FROM Licencias l
             JOIN Unidades u ON u.UnidadId = l.UnidadId
-            WHERE l.UnidadId = @unidadId AND DATE(l.FechaIngresoSistema, 'localtime') = @fecha
+            WHERE l.UnidadId = @unidadId AND DATE(l.FechaIngresoSistema, 'localtime') = @fecha AND l.CorreoEnviado = 0
             ORDER BY l.NombreCompletoPaciente COLLATE NOCASE;
             """;
         return connection.Query<Licencia>(sql, new { unidadId, fecha = fecha.ToString("yyyy-MM-dd") }).ToList();
