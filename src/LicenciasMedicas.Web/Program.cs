@@ -36,6 +36,7 @@ builder.Services.AddSingleton<StagingRepository>();
 builder.Services.AddSingleton<ProcesamientoService>();
 builder.Services.AddSingleton<IngresoManualService>();
 builder.Services.AddSingleton<CorreoRedaccionService>();
+builder.Services.AddSingleton<SmtpDiagnosticoLog>();
 builder.Services.AddSingleton<ConfiguracionSmtpService>();
 builder.Services.AddSingleton<CorreoCopiaService>();
 builder.Services.AddSingleton<CorreoEnvioService>();

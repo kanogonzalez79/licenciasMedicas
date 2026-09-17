@@ -15,10 +15,12 @@ namespace LicenciasMedicas.Core.Correos;
 public sealed class ConfiguracionSmtpService
 {
     private readonly SqliteConnectionFactory _connectionFactory;
+    private readonly SmtpDiagnosticoLog _diagnosticoLog;
 
-    public ConfiguracionSmtpService(SqliteConnectionFactory connectionFactory)
+    public ConfiguracionSmtpService(SqliteConnectionFactory connectionFactory, SmtpDiagnosticoLog diagnosticoLog)
     {
         _connectionFactory = connectionFactory;
+        _diagnosticoLog = diagnosticoLog;
     }
 
     /// <summary>Configuración vigente sin la contraseña, o null si nunca se guardó ninguna.</summary>
@@ -85,10 +87,12 @@ public sealed class ConfiguracionSmtpService
             cliente.Connect(host, puerto, usaSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTlsWhenAvailable);
             cliente.Authenticate(usuario, contrasenaPlana);
             cliente.Disconnect(quit: true);
+            _diagnosticoLog.RegistrarExito("prueba", host, puerto, usuario, usaSsl);
             return new ResultadoPruebaSmtp(true, null);
         }
         catch (Exception ex)
         {
+            _diagnosticoLog.RegistrarError("prueba", host, puerto, usuario, usaSsl, ex);
             return new ResultadoPruebaSmtp(false, ex.Message);
         }
     }

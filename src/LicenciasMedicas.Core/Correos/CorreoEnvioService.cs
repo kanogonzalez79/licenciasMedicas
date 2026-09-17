@@ -44,15 +44,17 @@ public sealed class CorreoEnvioService
     private readonly UnidadesRepository _unidadesRepo;
     private readonly ConfiguracionSmtpService _configuracionSmtp;
     private readonly CorreoCopiaService _correoCopia;
+    private readonly SmtpDiagnosticoLog _diagnosticoLog;
 
     public CorreoEnvioService(
         SqliteConnectionFactory connectionFactory, UnidadesRepository unidadesRepo,
-        ConfiguracionSmtpService configuracionSmtp, CorreoCopiaService correoCopia)
+        ConfiguracionSmtpService configuracionSmtp, CorreoCopiaService correoCopia, SmtpDiagnosticoLog diagnosticoLog)
     {
         _connectionFactory = connectionFactory;
         _unidadesRepo = unidadesRepo;
         _configuracionSmtp = configuracionSmtp;
         _correoCopia = correoCopia;
+        _diagnosticoLog = diagnosticoLog;
     }
 
     public void Enviar(int unidadId, DateOnly fecha, string texto)
@@ -83,9 +85,11 @@ public sealed class CorreoEnvioService
             cliente.Authenticate(credenciales.Usuario, credenciales.ContrasenaPlana);
             cliente.Send(mensaje);
             cliente.Disconnect(quit: true);
+            _diagnosticoLog.RegistrarExito("envio", credenciales.Host, credenciales.Puerto, credenciales.Usuario, credenciales.UsaSsl);
         }
         catch (Exception ex)
         {
+            _diagnosticoLog.RegistrarError("envio", credenciales.Host, credenciales.Puerto, credenciales.Usuario, credenciales.UsaSsl, ex);
             throw new EnvioCorreoFallidoException($"No se pudo enviar el correo: {ex.Message}", ex);
         }
 

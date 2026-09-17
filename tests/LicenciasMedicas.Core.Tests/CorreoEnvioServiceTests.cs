@@ -15,13 +15,14 @@ public sealed class CorreoEnvioServiceTests : IDisposable
     private readonly ConfiguracionSmtpService _configuracionSmtp;
     private readonly CorreoCopiaService _correoCopia;
     private readonly CorreoEnvioService _servicio;
+    private readonly AppPaths _paths;
     private readonly int _unidadId;
 
     public CorreoEnvioServiceTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), "lm_envio_tests_" + Guid.NewGuid().ToString("N"));
-        var paths = new AppPaths(_tempDir);
-        _connectionFactory = new SqliteConnectionFactory(paths.DbFilePath);
+        _paths = new AppPaths(_tempDir);
+        _connectionFactory = new SqliteConnectionFactory(_paths.DbFilePath);
 
         using (var connection = _connectionFactory.Crear())
         {
@@ -29,9 +30,10 @@ public sealed class CorreoEnvioServiceTests : IDisposable
             _unidadId = new UnidadesRepository().Crear(connection, "Unidad de Prueba", "unidad@ejemplo.cl");
         }
 
-        _configuracionSmtp = new ConfiguracionSmtpService(_connectionFactory);
+        _configuracionSmtp = new ConfiguracionSmtpService(_connectionFactory, new SmtpDiagnosticoLog(_paths));
         _correoCopia = new CorreoCopiaService(_connectionFactory);
-        _servicio = new CorreoEnvioService(_connectionFactory, new UnidadesRepository(), _configuracionSmtp, _correoCopia);
+        _servicio = new CorreoEnvioService(
+            _connectionFactory, new UnidadesRepository(), _configuracionSmtp, _correoCopia, new SmtpDiagnosticoLog(_paths));
     }
 
     public void Dispose()
@@ -79,6 +81,35 @@ public sealed class CorreoEnvioServiceTests : IDisposable
 
         Assert.NotNull(fechaHoraEnvio);
         Assert.Contains("Texto de prueba del correo.", servidor.UltimoMensajeRecibido);
+    }
+
+    [Fact]
+    public void Enviar_ConServidorSmtpFalsoYCredencialesValidas_RegistraElExitoEnElLogDeDiagnostico()
+    {
+        using var servidor = new ServidorSmtpFalso();
+        _configuracionSmtp.Guardar("127.0.0.1", servidor.Puerto, "usuario", "clave-secreta", "avisos@ejemplo.cl", usaSsl: false);
+
+        _servicio.Enviar(_unidadId, DateOnly.FromDateTime(DateTime.Now), "Texto de prueba del correo.");
+
+        var contenidoLog = File.ReadAllText(Path.Combine(_paths.LogsDir, "smtp.log"));
+
+        Assert.Contains($"[OK] envio host=127.0.0.1:{servidor.Puerto} usuario=usuario", contenidoLog);
+        Assert.DoesNotContain("clave-secreta", contenidoLog);
+    }
+
+    [Fact]
+    public void Enviar_ConServidorInalcanzable_RegistraElErrorEnElLogDeDiagnosticoYPropagaLaExcepcion()
+    {
+        // Puerto cerrado en loopback: falla rápido con "conexión rechazada", sin depender de red externa.
+        _configuracionSmtp.Guardar("127.0.0.1", 65530, "usuario", "clave-secreta", "avisos@ejemplo.cl", usaSsl: false);
+
+        Assert.Throws<EnvioCorreoFallidoException>(
+            () => _servicio.Enviar(_unidadId, DateOnly.FromDateTime(DateTime.Now), "Texto de prueba del correo."));
+
+        var contenidoLog = File.ReadAllText(Path.Combine(_paths.LogsDir, "smtp.log"));
+
+        Assert.Contains("[ERROR] envio host=127.0.0.1:65530 usuario=usuario", contenidoLog);
+        Assert.DoesNotContain("clave-secreta", contenidoLog);
     }
 
     [Fact]

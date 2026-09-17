@@ -19,7 +19,7 @@ public sealed class ConfiguracionSmtpServiceTests : IDisposable
         using (var connection = connectionFactory.Crear())
             Migrator.Migrar(connection);
 
-        _servicio = new ConfiguracionSmtpService(connectionFactory);
+        _servicio = new ConfiguracionSmtpService(connectionFactory, new SmtpDiagnosticoLog(paths));
     }
 
     public void Dispose()
@@ -88,5 +88,29 @@ public sealed class ConfiguracionSmtpServiceTests : IDisposable
 
         Assert.False(resultado.Exito);
         Assert.False(string.IsNullOrWhiteSpace(resultado.Error));
+    }
+
+    [Fact]
+    public void ProbarConexion_ServidorInalcanzable_RegistraElErrorEnElLogSinLaContrasena()
+    {
+        _servicio.ProbarConexion("127.0.0.1", 65530, "usuario-de-prueba", "clave-secreta", usaSsl: false);
+
+        var contenidoLog = File.ReadAllText(Path.Combine(new AppPaths(_tempDir).LogsDir, "smtp.log"));
+
+        Assert.Contains("[ERROR] prueba host=127.0.0.1:65530 usuario=usuario-de-prueba", contenidoLog);
+        Assert.DoesNotContain("clave-secreta", contenidoLog);
+    }
+
+    [Fact]
+    public void ProbarConexion_ConServidorSmtpFalsoYCredencialesValidas_RegistraElExitoEnElLog()
+    {
+        using var servidor = new ServidorSmtpFalso();
+
+        _servicio.ProbarConexion("127.0.0.1", servidor.Puerto, "usuario-de-prueba", "clave-secreta", usaSsl: false);
+
+        var contenidoLog = File.ReadAllText(Path.Combine(new AppPaths(_tempDir).LogsDir, "smtp.log"));
+
+        Assert.Contains($"[OK] prueba host=127.0.0.1:{servidor.Puerto} usuario=usuario-de-prueba", contenidoLog);
+        Assert.DoesNotContain("clave-secreta", contenidoLog);
     }
 }
