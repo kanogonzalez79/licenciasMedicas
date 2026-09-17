@@ -35,6 +35,11 @@ public sealed class LicenciasRepositoryTests : IDisposable
 
     private int GrabarLicenciaDePrueba(string folio)
     {
+        return GrabarLicenciaDePrueba(folio, "2026-01-01", "2026-01-05");
+    }
+
+    private int GrabarLicenciaDePrueba(string folio, string fechaInicioReposo, string fechaTerminoReposo)
+    {
         using var connection = _connectionFactory.Crear();
         var licencia = new Licencia
         {
@@ -43,8 +48,8 @@ public sealed class LicenciasRepositoryTests : IDisposable
             RutPacienteSinDv = "11111111",
             DvPaciente = "1",
             NombreCompletoPaciente = "Paciente de Prueba",
-            FechaInicioReposo = "2026-01-01",
-            FechaTerminoReposo = "2026-01-05",
+            FechaInicioReposo = fechaInicioReposo,
+            FechaTerminoReposo = fechaTerminoReposo,
             CantidadDias = 5,
             UnidadId = _unidadId,
             RutaPdfArchivado = "prueba.pdf",
@@ -107,5 +112,69 @@ public sealed class LicenciasRepositoryTests : IDisposable
 
         var unidad = Assert.Single(resultado);
         Assert.Null(unidad.UltimoEnvio);
+    }
+
+    [Fact]
+    public void ObtenerParaInforme_ModoFechaInicio_SoloIncluyeLicenciasConInicioEnElRango()
+    {
+        GrabarLicenciaDePrueba("INICIO-DENTRO", "2026-02-15", "2026-02-25");
+        GrabarLicenciaDePrueba("INICIO-FUERA", "2026-02-05", "2026-02-15");
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.ObtenerParaInforme(
+            connection, new DateOnly(2026, 2, 10), new DateOnly(2026, 2, 20), ModoFechaInforme.FechaInicio);
+
+        var folio = Assert.Single(resultado);
+        Assert.Equal("INICIO-DENTRO", folio.Folio);
+    }
+
+    [Fact]
+    public void ObtenerParaInforme_ModoFechaTermino_SoloIncluyeLicenciasConTerminoEnElRango()
+    {
+        GrabarLicenciaDePrueba("TERMINO-DENTRO", "2026-02-05", "2026-02-15");
+        GrabarLicenciaDePrueba("TERMINO-FUERA", "2026-02-15", "2026-02-25");
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.ObtenerParaInforme(
+            connection, new DateOnly(2026, 2, 10), new DateOnly(2026, 2, 20), ModoFechaInforme.FechaTermino);
+
+        var folio = Assert.Single(resultado);
+        Assert.Equal("TERMINO-DENTRO", folio.Folio);
+    }
+
+    [Fact]
+    public void ObtenerParaInforme_ModoInterseccion_IncluyeSoloLicenciasQueSeSolapanConElRango()
+    {
+        // Cubre por completo el rango consultado: ni el inicio ni el término caen dentro de él.
+        GrabarLicenciaDePrueba("CUBRE-TODO", "2026-02-01", "2026-02-28");
+        // Se solapa parcialmente al inicio del rango.
+        GrabarLicenciaDePrueba("SOLAPA-INICIO", "2026-02-05", "2026-02-12");
+        // Se solapa parcialmente al final del rango.
+        GrabarLicenciaDePrueba("SOLAPA-FINAL", "2026-02-18", "2026-02-25");
+        // Termina antes de que comience el rango consultado: sin ningún día en común.
+        GrabarLicenciaDePrueba("SIN-SOLAPE-ANTES", "2026-01-01", "2026-02-05");
+        // Comienza después de que termina el rango consultado: sin ningún día en común.
+        GrabarLicenciaDePrueba("SIN-SOLAPE-DESPUES", "2026-02-25", "2026-03-01");
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.ObtenerParaInforme(
+            connection, new DateOnly(2026, 2, 10), new DateOnly(2026, 2, 20), ModoFechaInforme.Interseccion);
+
+        var folios = resultado.Select(l => l.Folio).ToList();
+        Assert.Equal(
+            new[] { "CUBRE-TODO", "SOLAPA-INICIO", "SOLAPA-FINAL" }.OrderBy(f => f),
+            folios.OrderBy(f => f));
+    }
+
+    [Fact]
+    public void ObtenerParaInforme_SinLicenciasQueCalifiquen_DevuelveListaVacia()
+    {
+        GrabarLicenciaDePrueba("FUERA-DE-RANGO", "2026-01-01", "2026-01-05");
+
+        using var connection = _connectionFactory.Crear();
+        var resultado = _licenciasRepo.ObtenerParaInforme(
+            connection, new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 30), ModoFechaInforme.Interseccion);
+
+        Assert.Empty(resultado);
     }
 }

@@ -49,6 +49,14 @@ public sealed class BusquedaLicenciasFiltro
     public int PageSize { get; init; } = 50;
 }
 
+/// <summary>A qué fecha de la licencia aplica el rango consultado en el informe Excel.</summary>
+public enum ModoFechaInforme
+{
+    FechaInicio,
+    FechaTermino,
+    Interseccion,
+}
+
 public sealed class UnidadConLicenciasEnFecha
 {
     public int UnidadId { get; set; }

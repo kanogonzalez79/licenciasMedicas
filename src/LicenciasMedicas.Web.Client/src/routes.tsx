@@ -5,6 +5,7 @@ import { BuscarPage } from "@/pages/BuscarPage";
 import { ConfiguracionPage } from "@/pages/ConfiguracionPage";
 import { IngresarPage } from "@/pages/IngresarPage";
 import { InicioPage } from "@/pages/InicioPage";
+import { InformePage } from "@/pages/InformePage";
 import { RedactarCorreoPage } from "@/pages/RedactarCorreoPage";
 import { RespaldoPage } from "@/pages/RespaldoPage";
 import { UnidadesPage } from "@/pages/UnidadesPage";
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: "buscar", Component: BuscarPage },
       { path: "ingresar", Component: IngresarPage },
       { path: "redactar-correo", Component: RedactarCorreoPage },
+      { path: "informe", Component: InformePage },
       { path: "respaldo", Component: RespaldoPage },
       { path: "configuracion", Component: ConfiguracionPage },
     ],

@@ -1,4 +1,5 @@
 using LicenciasMedicas.Core.Data;
+using LicenciasMedicas.Core.Informes;
 using LicenciasMedicas.Core.Licencias;
 using LicenciasMedicas.Core.Parsing;
 using LicenciasMedicas.Core.Paths;
@@ -70,6 +71,35 @@ public static class LicenciasEndpoints
             using var connection = factory.Crear();
             var (items, total) = repo.Buscar(connection, filtro);
             return Results.Ok(new { items, total });
+        });
+
+        app.MapGet("/api/licencias/informe", (
+            DateOnly? fechaDesde, DateOnly? fechaHasta, string? modo,
+            SqliteConnectionFactory factory, LicenciasRepository repo) =>
+        {
+            if (fechaDesde is null || fechaHasta is null)
+                return Results.BadRequest(new { error = "Debe indicar fecha desde y fecha hasta." });
+
+            if (fechaDesde > fechaHasta)
+                return Results.BadRequest(new { error = "La fecha desde no puede ser posterior a la fecha hasta." });
+
+            var modoInforme = modo?.ToLowerInvariant() switch
+            {
+                "inicio" => ModoFechaInforme.FechaInicio,
+                "termino" => ModoFechaInforme.FechaTermino,
+                "interseccion" => ModoFechaInforme.Interseccion,
+                _ => (ModoFechaInforme?)null,
+            };
+
+            if (modoInforme is null)
+                return Results.BadRequest(new { error = "El modo de fecha debe ser 'inicio', 'termino' o 'interseccion'." });
+
+            using var connection = factory.Crear();
+            var licencias = repo.ObtenerParaInforme(connection, fechaDesde.Value, fechaHasta.Value, modoInforme.Value);
+            var excel = InformeLicenciasExcelService.Generar(licencias);
+
+            var nombreArchivo = $"Informe_Licencias_{fechaDesde:yyyy-MM-dd}_a_{fechaHasta:yyyy-MM-dd}.xlsx";
+            return Results.File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombreArchivo);
         });
 
         app.MapGet("/api/licencias/{id:int}", (int id, SqliteConnectionFactory factory, LicenciasRepository repo) =>

@@ -85,6 +85,8 @@ export type ResultadoBusquedaLicencias = {
   total: number;
 };
 
+export type ModoFechaInforme = "inicio" | "termino" | "interseccion";
+
 export type NuevaLicenciaManual = {
   folio: string;
   rutPaciente: string;
@@ -114,6 +116,10 @@ export const licenciasApi = {
     return apiFetch<ResultadoBusquedaLicencias>(`/api/licencias?${params.toString()}`);
   },
   pdfUrl: (id: number) => `/api/licencias/${id}/pdf`,
+  informeUrl: (fechaDesde: string, fechaHasta: string, modo: ModoFechaInforme) => {
+    const params = new URLSearchParams({ fechaDesde, fechaHasta, modo });
+    return `/api/licencias/informe?${params.toString()}`;
+  },
   eliminar: (id: number) => apiFetch<void>(`/api/licencias/${id}`, { method: "DELETE" }),
   ingresarManual: (datos: NuevaLicenciaManual) => {
     const formData = new FormData();

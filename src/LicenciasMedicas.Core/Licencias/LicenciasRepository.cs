@@ -130,6 +130,33 @@ public sealed class LicenciasRepository
         return (items, total);
     }
 
+    public IReadOnlyList<Licencia> ObtenerParaInforme(SqliteConnection connection, DateOnly fechaDesde, DateOnly fechaHasta, ModoFechaInforme modo)
+    {
+        var condicion = modo switch
+        {
+            ModoFechaInforme.FechaInicio => "l.FechaInicioReposo BETWEEN @fechaDesde AND @fechaHasta",
+            ModoFechaInforme.FechaTermino => "l.FechaTerminoReposo BETWEEN @fechaDesde AND @fechaHasta",
+            ModoFechaInforme.Interseccion => "l.FechaInicioReposo <= @fechaHasta AND l.FechaTerminoReposo >= @fechaDesde",
+            _ => throw new ArgumentOutOfRangeException(nameof(modo), modo, null),
+        };
+
+        var sql = $"""
+            SELECT l.*, u.Descripcion AS UnidadDescripcion
+            FROM Licencias l
+            JOIN Unidades u ON u.UnidadId = l.UnidadId
+            WHERE {condicion}
+            ORDER BY l.FechaInicioReposo, l.NombreCompletoPaciente COLLATE NOCASE;
+            """;
+
+        var parametros = new
+        {
+            fechaDesde = fechaDesde.ToString("yyyy-MM-dd"),
+            fechaHasta = fechaHasta.ToString("yyyy-MM-dd"),
+        };
+
+        return connection.Query<Licencia>(sql, parametros).ToList();
+    }
+
     public IReadOnlyList<UnidadConLicenciasEnFecha> UnidadesConLicenciasGrabadasEnFecha(SqliteConnection connection, DateOnly fecha)
     {
         const string sql = """
