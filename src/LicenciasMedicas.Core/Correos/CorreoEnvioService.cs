@@ -43,12 +43,16 @@ public sealed class CorreoEnvioService
     private readonly SqliteConnectionFactory _connectionFactory;
     private readonly UnidadesRepository _unidadesRepo;
     private readonly ConfiguracionSmtpService _configuracionSmtp;
+    private readonly CorreoCopiaService _correoCopia;
 
-    public CorreoEnvioService(SqliteConnectionFactory connectionFactory, UnidadesRepository unidadesRepo, ConfiguracionSmtpService configuracionSmtp)
+    public CorreoEnvioService(
+        SqliteConnectionFactory connectionFactory, UnidadesRepository unidadesRepo,
+        ConfiguracionSmtpService configuracionSmtp, CorreoCopiaService correoCopia)
     {
         _connectionFactory = connectionFactory;
         _unidadesRepo = unidadesRepo;
         _configuracionSmtp = configuracionSmtp;
+        _correoCopia = correoCopia;
     }
 
     public void Enviar(int unidadId, DateOnly fecha, string texto)
@@ -68,6 +72,8 @@ public sealed class CorreoEnvioService
             var mensaje = new MimeMessage();
             mensaje.From.Add(MailboxAddress.Parse(credenciales.Remitente));
             mensaje.To.Add(MailboxAddress.Parse(unidad.CorreoElectronico!));
+            foreach (var correoCopia in _correoCopia.ListarActivos())
+                mensaje.Cc.Add(MailboxAddress.Parse(correoCopia));
             mensaje.Subject = $"Licencias médicas - {unidad.Descripcion} - {fecha:yyyy-MM-dd}";
             mensaje.Body = new TextPart("plain") { Text = texto };
 

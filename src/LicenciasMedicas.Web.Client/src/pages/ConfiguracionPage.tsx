@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { configuracionApi } from "@/lib/api";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { configuracionApi, correosCopiaApi } from "@/lib/api";
+
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+
+function esCorreoValido(correo: string): boolean {
+  return EMAIL_PATTERN.test(correo.trim());
+}
 
 export function ConfiguracionPage() {
   const queryClient = useQueryClient();
@@ -50,6 +57,44 @@ export function ConfiguracionPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const correosCopiaQuery = useQuery({ queryKey: ["configuracion", "correos-copia"], queryFn: correosCopiaApi.listar });
+  const [nuevoCorreoCopia, setNuevoCorreoCopia] = useState("");
+
+  const agregarCorreoCopia = useMutation({
+    mutationFn: () => correosCopiaApi.agregar(nuevoCorreoCopia.trim()),
+    onSuccess: () => {
+      setNuevoCorreoCopia("");
+      toast.success("Correo en copia agregado.");
+      queryClient.invalidateQueries({ queryKey: ["configuracion", "correos-copia"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const cambiarActivoCorreoCopia = useMutation({
+    mutationFn: ({ id, activo }: { id: number; activo: boolean }) => correosCopiaApi.cambiarActivo(id, activo),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["configuracion", "correos-copia"] }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const eliminarCorreoCopia = useMutation({
+    mutationFn: (id: number) => correosCopiaApi.eliminar(id),
+    onSuccess: () => {
+      toast.success("Correo en copia eliminado.");
+      queryClient.invalidateQueries({ queryKey: ["configuracion", "correos-copia"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  function handleAgregarCorreoCopia() {
+    if (!esCorreoValido(nuevoCorreoCopia)) {
+      toast.error("El correo electrónico debe tener un formato válido.");
+      return;
+    }
+    agregarCorreoCopia.mutate();
+  }
+
+  const correosCopia = correosCopiaQuery.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -111,6 +156,78 @@ export function ConfiguracionPage() {
               {guardar.isPending ? "Guardando..." : "Guardar"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Correos en copia (CC)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Direcciones que se agregan en copia a todo aviso de licencias enviado por correo, sin importar la unidad
+            destinataria. Independiente de la configuración del servidor SMTP.
+          </p>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nuevoCorreoCopia">Correo electrónico</Label>
+              <Input
+                id="nuevoCorreoCopia"
+                type="email"
+                value={nuevoCorreoCopia}
+                onChange={(e) => setNuevoCorreoCopia(e.target.value)}
+                placeholder="jefatura@ejemplo.cl"
+              />
+            </div>
+            <Button onClick={handleAgregarCorreoCopia} disabled={agregarCorreoCopia.isPending}>
+              Agregar
+            </Button>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Correo electrónico</TableHead>
+                <TableHead>Activo</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {correosCopia.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="italic text-muted-foreground">
+                    No hay correos en copia registrados.
+                  </TableCell>
+                </TableRow>
+              )}
+              {correosCopia.map((correoCopia) => (
+                <TableRow key={correoCopia.correoCopiaId}>
+                  <TableCell>{correoCopia.correoElectronico}</TableCell>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={correoCopia.activo}
+                      onChange={(e) =>
+                        cambiarActivoCorreoCopia.mutate({ id: correoCopia.correoCopiaId, activo: e.target.checked })
+                      }
+                      className="size-4 rounded border-input"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => eliminarCorreoCopia.mutate(correoCopia.correoCopiaId)}
+                      disabled={eliminarCorreoCopia.isPending}
+                    >
+                      Eliminar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

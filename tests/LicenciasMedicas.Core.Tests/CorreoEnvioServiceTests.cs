@@ -13,6 +13,7 @@ public sealed class CorreoEnvioServiceTests : IDisposable
     private readonly string _tempDir;
     private readonly SqliteConnectionFactory _connectionFactory;
     private readonly ConfiguracionSmtpService _configuracionSmtp;
+    private readonly CorreoCopiaService _correoCopia;
     private readonly CorreoEnvioService _servicio;
     private readonly int _unidadId;
 
@@ -29,7 +30,8 @@ public sealed class CorreoEnvioServiceTests : IDisposable
         }
 
         _configuracionSmtp = new ConfiguracionSmtpService(_connectionFactory);
-        _servicio = new CorreoEnvioService(_connectionFactory, new UnidadesRepository(), _configuracionSmtp);
+        _correoCopia = new CorreoCopiaService(_connectionFactory);
+        _servicio = new CorreoEnvioService(_connectionFactory, new UnidadesRepository(), _configuracionSmtp, _correoCopia);
     }
 
     public void Dispose()
@@ -77,6 +79,34 @@ public sealed class CorreoEnvioServiceTests : IDisposable
 
         Assert.NotNull(fechaHoraEnvio);
         Assert.Contains("Texto de prueba del correo.", servidor.UltimoMensajeRecibido);
+    }
+
+    [Fact]
+    public void Enviar_ConCorreosEnCopiaActivos_LosAgregaComoCcEnElMensaje()
+    {
+        _correoCopia.Agregar("copia1@ejemplo.cl");
+        _correoCopia.Agregar("copia2@ejemplo.cl");
+        var copia3 = _correoCopia.Agregar("copia3-inactivo@ejemplo.cl");
+        _correoCopia.CambiarActivo(copia3.CorreoCopiaId, activo: false);
+
+        using var servidor = new ServidorSmtpFalso();
+        _configuracionSmtp.Guardar("127.0.0.1", servidor.Puerto, "usuario", "clave", "avisos@ejemplo.cl", usaSsl: false);
+
+        _servicio.Enviar(_unidadId, DateOnly.FromDateTime(DateTime.Now), "Texto de prueba del correo.");
+
+        Assert.Contains("Cc: copia1@ejemplo.cl, copia2@ejemplo.cl", servidor.UltimoMensajeRecibido);
+        Assert.DoesNotContain("copia3-inactivo@ejemplo.cl", servidor.UltimoMensajeRecibido);
+    }
+
+    [Fact]
+    public void Enviar_SinCorreosEnCopiaConfigurados_NoIncluyeEncabezadoCc()
+    {
+        using var servidor = new ServidorSmtpFalso();
+        _configuracionSmtp.Guardar("127.0.0.1", servidor.Puerto, "usuario", "clave", "avisos@ejemplo.cl", usaSsl: false);
+
+        _servicio.Enviar(_unidadId, DateOnly.FromDateTime(DateTime.Now), "Texto de prueba del correo.");
+
+        Assert.DoesNotContain("Cc:", servidor.UltimoMensajeRecibido);
     }
 
     [Fact]

@@ -264,6 +264,31 @@ export const configuracionApi = {
     }),
 };
 
+// -- Correos en copia (CC) -------------------------------------------------------
+
+export type CorreoCopia = {
+  correoCopiaId: number;
+  correoElectronico: string;
+  activo: boolean;
+};
+
+export const correosCopiaApi = {
+  listar: () => apiFetch<CorreoCopia[]>("/api/configuracion/correos-copia"),
+  agregar: (correoElectronico: string) =>
+    apiFetch<CorreoCopia>("/api/configuracion/correos-copia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correoElectronico }),
+    }),
+  cambiarActivo: (id: number, activo: boolean) =>
+    apiFetch<void>(`/api/configuracion/correos-copia/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activo }),
+    }),
+  eliminar: (id: number) => apiFetch<void>(`/api/configuracion/correos-copia/${id}`, { method: "DELETE" }),
+};
+
 // -- Respaldo ------------------------------------------------------------------
 
 export type ResultadoRespaldo =
