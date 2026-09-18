@@ -1,0 +1,23 @@
+{
+  "name": "manual-usuario-licencias-medicas",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Herramienta de compilación del manual de usuario del Sistema de Licencias Médicas. Independiente del frontend de la app.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "build:open": "node build.mjs --open"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0",
+    "markdown-it-container": "^4.0.0",
+    "pdf-parse": "^1.1.1",
+    "puppeteer-core": "^23.11.1"
+  }
+}

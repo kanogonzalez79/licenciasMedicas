@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>{{TITULO}} — {{SUBTITULO}}</title>
+<style>
+:root {
+  --alto-contenido-mm: {{ALTO_CONTENIDO_MM}}mm;
+}
+{{FUENTES_CSS}}
+{{ESTILOS_MANUAL}}
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <img class="logo" src="{{LOGO_SRC}}" alt="" />
+  <div class="marca">Licencias Médicas</div>
+  <h1 class="titulo-portada">{{TITULO}}</h1>
+  <p class="subtitulo-portada">{{SUBTITULO}}</p>
+  <div class="meta-portada">
+    <div>Versión {{VERSION}}</div>
+    <div>Generado el {{FECHA}}</div>
+  </div>
+</section>
+
+<section class="indice">
+  <h1>Índice</h1>
+  {{INDICE}}
+</section>
+
+{{CONTENIDO}}
+
+</body>
+</html>
