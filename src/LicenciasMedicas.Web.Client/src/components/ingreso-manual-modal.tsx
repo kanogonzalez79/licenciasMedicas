@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { calcularDiasReposo, calcularFechaTermino } from "@/lib/fechas-reposo";
+import { MAXIMO_DIAS_REPOSO, calcularDiasReposo, calcularFechaTermino } from "@/lib/fechas-reposo";
 import { type Unidad, licenciasApi } from "@/lib/api";
 
 const SIN_ASIGNAR = "__sin_asignar__";
@@ -80,7 +80,9 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
         return { ...actual, fechaInicioReposo: valor, cantidadDias: String(calcularDiasReposo(valor, actual.fechaTerminoReposo)) };
       }
       if (valor && actual.cantidadDias) {
-        return { ...actual, fechaInicioReposo: valor, fechaTerminoReposo: calcularFechaTermino(valor, Number(actual.cantidadDias)) };
+        const fechaTermino = calcularFechaTermino(valor, Number(actual.cantidadDias));
+        if (fechaTermino === undefined) return { ...actual, fechaInicioReposo: valor };
+        return { ...actual, fechaInicioReposo: valor, fechaTerminoReposo: fechaTermino };
       }
       return { ...actual, fechaInicioReposo: valor };
     });
@@ -98,7 +100,9 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
   function actualizarCantidadDias(valor: string) {
     setCampos((actual) => {
       if (actual.fechaInicioReposo && valor) {
-        return { ...actual, cantidadDias: valor, fechaTerminoReposo: calcularFechaTermino(actual.fechaInicioReposo, Number(valor)) };
+        const fechaTermino = calcularFechaTermino(actual.fechaInicioReposo, Number(valor));
+        if (fechaTermino === undefined) return { ...actual, cantidadDias: valor };
+        return { ...actual, cantidadDias: valor, fechaTerminoReposo: fechaTermino };
       }
       return { ...actual, cantidadDias: valor };
     });
@@ -138,6 +142,9 @@ export function IngresoManualModal({ unidades }: { unidades: Unidad[] }) {
     if (!campos.codigoTipoLicencia) return toast.error("Debe seleccionar el tipo de licencia.");
     if (!campos.fechaInicioReposo || !campos.fechaTerminoReposo || !campos.cantidadDias) {
       return toast.error("Debe completar las fechas de reposo (o fecha de inicio y cantidad de días).");
+    }
+    if (calcularDiasReposo(campos.fechaInicioReposo, campos.fechaTerminoReposo) > MAXIMO_DIAS_REPOSO) {
+      return toast.error(`El rango de reposo no puede superar los ${MAXIMO_DIAS_REPOSO} días.`);
     }
     if (unidadId === SIN_ASIGNAR) return toast.error("Debe seleccionar una unidad.");
     if (!archivo) return toast.error("Debe adjuntar el documento de respaldo (PDF o imagen).");
