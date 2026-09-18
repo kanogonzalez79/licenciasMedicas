@@ -93,4 +93,63 @@ public sealed class LicenciasEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
     }
+
+    [Fact]
+    public async Task Get_Dashboard_RangoValido_DevuelveLicenciasDelRango()
+    {
+        GrabarLicenciaDePrueba("FOLIO-DASH-1");
+        var client = _app.GetTestClient();
+
+        var respuesta = await client.GetAsync("/api/licencias/dashboard?fechaDesde=2026-01-01&fechaHasta=2026-01-31&modo=inicio");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var licencias = await respuesta.Content.ReadFromJsonAsync<List<Licencia>>();
+        Assert.Single(licencias!);
+        Assert.Equal("FOLIO-DASH-1", licencias![0].Folio);
+    }
+
+    [Theory]
+    [InlineData("termino")]
+    [InlineData("interseccion")]
+    public async Task Get_Dashboard_OtrosModos_DevuelveLicenciasDelRango(string modo)
+    {
+        GrabarLicenciaDePrueba("FOLIO-DASH-MODO");
+        var client = _app.GetTestClient();
+
+        var respuesta = await client.GetAsync($"/api/licencias/dashboard?fechaDesde=2026-01-01&fechaHasta=2026-01-31&modo={modo}");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var licencias = await respuesta.Content.ReadFromJsonAsync<List<Licencia>>();
+        Assert.Single(licencias!);
+    }
+
+    [Fact]
+    public async Task Get_Dashboard_FaltaFechaHasta_Devuelve400()
+    {
+        var client = _app.GetTestClient();
+
+        var respuesta = await client.GetAsync("/api/licencias/dashboard?fechaDesde=2026-01-01&modo=inicio");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_Dashboard_FechaDesdePosteriorAHasta_Devuelve400()
+    {
+        var client = _app.GetTestClient();
+
+        var respuesta = await client.GetAsync("/api/licencias/dashboard?fechaDesde=2026-02-01&fechaHasta=2026-01-01&modo=inicio");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_Dashboard_ModoInvalido_Devuelve400()
+    {
+        var client = _app.GetTestClient();
+
+        var respuesta = await client.GetAsync("/api/licencias/dashboard?fechaDesde=2026-01-01&fechaHasta=2026-01-31&modo=invalido");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
 }

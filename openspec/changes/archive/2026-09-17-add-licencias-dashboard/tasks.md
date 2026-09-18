@@ -1,0 +1,24 @@
+## 1. Backend: endpoint de datos del dashboard
+
+- [x] 1.1 Agregar `GET /api/licencias/dashboard` en `LicenciasEndpoints.cs` con los mismos parámetros y validaciones que `GET /api/licencias/informe` (fechaDesde/fechaHasta/modo obligatorios, fechaDesde <= fechaHasta), reutilizando `LicenciasRepository.ObtenerParaInforme` y devolviendo `Results.Ok(licencias)`; verificar con `dotnet build` sin errores.
+- [x] 1.2 Agregar pruebas en `tests/LicenciasMedicas.Core.Tests` (o un test de integración del endpoint si existe ese patrón en el proyecto) que cubran: rango válido devuelve las licencias esperadas para cada modo, fechas faltantes o desde > hasta devuelven 400; verificar con `dotnet test tests/LicenciasMedicas.Core.Tests/LicenciasMedicas.Core.Tests.csproj`.
+
+## 2. Frontend: cliente API y agregaciones
+
+- [x] 2.1 Agregar `recharts` a `src/LicenciasMedicas.Web.Client/package.json` y verificar que `npm install` y `npm run build` (tsc -b && vite build) terminan sin errores.
+- [x] 2.2 Agregar en `lib/api.ts` el tipo y la función para llamar a `GET /api/licencias/dashboard` (mismo estilo que `licenciasApi.informeUrl`, pero como fetch que devuelve `Licencia[]`).
+- [x] 2.3 Crear `lib/dashboard-agregaciones.ts` con funciones puras para: totales de volumen (cantidad, suma de días, promedio con protección de división por cero), ranking por tipo de licencia, ranking por unidad, proporción manual vs. parser, y bucketing de serie de tiempo por día/semana/mes según el largo del rango (umbrales: ≤60 días día, ≤365 días semana, >365 días mes) y según la fecha relevante al modo aplicado (inicio→FechaInicioReposo, termino→FechaTerminoReposo, interseccion→FechaInicioReposo).
+- [x] 2.4 Agregar pruebas unitarias de `dashboard-agregaciones.ts` (framework de test que use el proyecto, o pruebas manuales documentadas si no hay test runner de frontend) cubriendo: rango vacío, todas las licencias del mismo tipo/unidad, y los tres umbrales de granularidad de la serie de tiempo. El proyecto no tiene test runner de frontend (sin vitest/jest ni archivos `*.test.*`); se verificó con un script ejecutado con `node --experimental-strip-types` (17 casos, incluidos rango vacío, mismo tipo/unidad, días completos en intersección, los 3 umbrales de granularidad, y conteo por fecha de inicio vs. término) — todos pasaron. Script no incorporado al repo por no haber runner que lo ejecute en CI/build.
+
+## 3. Frontend: página y navegación
+
+- [x] 3.1 Crear `pages/DashboardPage.tsx` con los controles de fecha desde/hasta/modo (mismo patrón visual que `InformePage.tsx`), validaciones por `toast.error`, y estado local de "rango aplicado" que gatilla el fetch y el cálculo de agregaciones; sin rango aplicado no se muestra contenido.
+- [x] 3.2 Renderizar en `DashboardPage.tsx` los tiles de volumen (Card de shadcn/ui), los rankings por tipo y por unidad, el indicador manual vs. parser, y el gráfico de tendencia temporal con Recharts, incluyendo un estado vacío legible cuando el rango no tiene licencias.
+- [x] 3.3 Agregar la ruta `/dashboard` en `routes.tsx` apuntando a `DashboardPage`.
+- [x] 3.4 Agregar "Dashboard" al arreglo `paginas` del grupo `licencias` en `app-sidebar.tsx`.
+
+## 4. Verificación manual
+
+- [x] 4.1 Levantar backend (`dotnet run --project src/LicenciasMedicas.Web`) y frontend (`npm run dev` en `Web.Client`), abrir `/dashboard`, y confirmar que sin rango aplicado no hay contenido, que las validaciones de fecha funcionan, y que al aplicar un rango con licencias reales de prueba se ven los tres bloques (volumen, distribución, tendencia) con valores coherentes con `/buscar` para el mismo rango. Verificado con 3 licencias de prueba (DASH-A/B/C) ingresadas vía `/api/licencias/manual`. Se encontró y corrigió un bug real: con 2+ categorías de etiqueta larga, recharts ocultaba por completo la etiqueta de una fila del ranking por superposición vertical (ver `DashboardPage.tsx`, `RankingChart` — altura de fila insuficiente para el word-wrap); corregido aumentando alto/ancho del eje y forzando `interval={0}`. Licencias y unidad de prueba eliminadas después (no existe endpoint DELETE para unidades, así que "Unidad Dashboard Test" queda en la BD de dev — se avisó al usuario).
+- [x] 4.2 Probar los tres modos (inicio, término, intersección) con un rango que incluya al menos una licencia que se solape parcialmente, y confirmar que el total de días de reposo en modo intersección no recorta los días de esa licencia. Confirmado: con DASH-B (2025-12-20 a 2026-01-10, 22 días) y rango 2026-01-01/2026-01-31, modo intersección sumó los 22 días completos (total 30 = 5+22+3), modo inicio la excluyó (total 8 = 5+3).
+- [x] 4.3 Probar un rango corto (≤60 días), uno medio (entre 60 y 365 días) y uno largo (>365 días) y confirmar que la tendencia temporal cambia de granularidad (día/semana/mes) como corresponde. Confirmado en el navegador: 31 días → día, ~152 días → semana, ~396 días → mes.

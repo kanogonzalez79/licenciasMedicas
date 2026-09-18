@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   HardDrive,
   Home,
+  LayoutDashboard,
   Mail,
   Moon,
   Search,
@@ -46,6 +47,7 @@ const gruposNavegacion = [
       { href: "/buscar", etiqueta: "Buscar licencia", icon: Search },
       { href: "/redactar-correo", etiqueta: "Redactar correo", icon: Mail },
       { href: "/informe", etiqueta: "Informe", icon: FileSpreadsheet },
+      { href: "/dashboard", etiqueta: "Dashboard", icon: LayoutDashboard },
     ],
   },
   {

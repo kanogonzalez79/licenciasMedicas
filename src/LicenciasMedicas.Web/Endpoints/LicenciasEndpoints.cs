@@ -104,6 +104,32 @@ public static class LicenciasEndpoints
             return Results.File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombreArchivo);
         });
 
+        app.MapGet("/api/licencias/dashboard", (
+            DateOnly? fechaDesde, DateOnly? fechaHasta, string? modo,
+            SqliteConnectionFactory factory, LicenciasRepository repo) =>
+        {
+            if (fechaDesde is null || fechaHasta is null)
+                return Results.BadRequest(new { error = "Debe indicar fecha desde y fecha hasta." });
+
+            if (fechaDesde > fechaHasta)
+                return Results.BadRequest(new { error = "La fecha desde no puede ser posterior a la fecha hasta." });
+
+            var modoInforme = modo?.ToLowerInvariant() switch
+            {
+                "inicio" => ModoFechaInforme.FechaInicio,
+                "termino" => ModoFechaInforme.FechaTermino,
+                "interseccion" => ModoFechaInforme.Interseccion,
+                _ => (ModoFechaInforme?)null,
+            };
+
+            if (modoInforme is null)
+                return Results.BadRequest(new { error = "El modo de fecha debe ser 'inicio', 'termino' o 'interseccion'." });
+
+            using var connection = factory.Crear();
+            var licencias = repo.ObtenerParaInforme(connection, fechaDesde.Value, fechaHasta.Value, modoInforme.Value);
+            return Results.Ok(licencias);
+        });
+
         app.MapGet("/api/licencias/{id:int}", (int id, SqliteConnectionFactory factory, LicenciasRepository repo) =>
         {
             using var connection = factory.Crear();

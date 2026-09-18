@@ -122,6 +122,10 @@ export const licenciasApi = {
     const params = new URLSearchParams({ fechaDesde, fechaHasta, modo });
     return `/api/licencias/informe?${params.toString()}`;
   },
+  dashboard: (fechaDesde: string, fechaHasta: string, modo: ModoFechaInforme) => {
+    const params = new URLSearchParams({ fechaDesde, fechaHasta, modo });
+    return apiFetch<Licencia[]>(`/api/licencias/dashboard?${params.toString()}`);
+  },
   eliminar: (id: number) => apiFetch<void>(`/api/licencias/${id}`, { method: "DELETE" }),
   ingresarManual: (datos: NuevaLicenciaManual) => {
     const formData = new FormData();
